@@ -1,0 +1,4 @@
+[submodule "dm1_src"]
+	path = dm1_src
+	url = git@gitlab.bo:x/zynq-io.git
+	branch = master
