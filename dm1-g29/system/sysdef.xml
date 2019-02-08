@@ -1,0 +1,28 @@
+<?xml version="1.0"?>
+<Project Version="1" Minor="3" DIGEST="">
+	<TOOL_VERSION Version="2017.4.1"/>
+	<MODE Name="Post-Synthesis"/>
+	<SYSTEMINFO BOARD="" PART="xc7z010clg400-1" ARCH="zynq" PACKAGE="clg400" DEVICE="7z010" SPEED="-1" LUT="17600" FF="35200" BRAM="60" DSP="80"/>
+	<HIERARCHY Name="system_wrapper"/>
+	<File Type="HW_HANDOFF" Name="system.hwh" DESIGN_HIERARCHY="system_i" BD_TYPE="DEFAULT_BD"/>
+	<File Type="BD_TCL" Name="system_bd.tcl"/>
+	<File Type="PS_FSBL_INIT" Name="ps7_init.c"/>
+	<File Type="PS_FSBL_INIT" Name="ps7_init.h"/>
+	<File Type="PS_FSBL_INIT_GPL" Name="ps7_init_gpl.c"/>
+	<File Type="PS_FSBL_INIT_GPL" Name="ps7_init_gpl.h"/>
+	<File Type="PS_INIT_HELP" Name="ps7_init.html"/>
+	<File Type="PS_XMD_INIT" Name="ps7_init.tcl"/>
+	<File Type="BIT" Name="system.bit"/>
+	<DRIVERS>
+		<DRIVER IP_VLNV="braiins.cz:ip:vid_gen:1.0">
+			<File PATH="drivers/vid_gen_v1_0/data/vid_gen.mdd"/>
+			<File PATH="drivers/vid_gen_v1_0/data/vid_gen.tcl"/>
+			<File PATH="drivers/vid_gen_v1_0/src/Makefile"/>
+			<File PATH="drivers/vid_gen_v1_0/src/vid_gen.h"/>
+			<File PATH="drivers/vid_gen_v1_0/src/vid_gen.c"/>
+			<File PATH="drivers/vid_gen_v1_0/src/vid_gen_selftest.c"/>
+		</DRIVER>
+	</DRIVERS>
+	<USEDRESOURCES LUT="0" FF="8344" BRAM="0" DSP="0"/>
+</Project>
+
