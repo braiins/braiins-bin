@@ -1,4 +1,9 @@
-[submodule "dm1_src"]
-	path = dm1_src
-	url = git@gitlab.bo:x/zynq-io.git
-	branch = master
+[submodule "dm1-g9/src"]
+	path = dm1-g9/src
+	url = git@gitlab.ii.zone:x/braiins.git
+[submodule "dm1-g19/src"]
+	path = dm1-g19/src
+	url = git@gitlab.ii.zone:x/braiins.git
+[submodule "dm1-g29/src"]
+	path = dm1-g29/src
+	url = git@gitlab.ii.zone:x/braiins.git
