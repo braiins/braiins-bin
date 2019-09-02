@@ -7,3 +7,6 @@
 [submodule "dm1-g29/src"]
 	path = dm1-g29/src
 	url = git@gitlab.ii.zone:x/braiins.git
+[submodule "am1-s9/src"]
+	path = am1-s9/src
+	url = git@gitlab.ii.zone:x/braiins.git
