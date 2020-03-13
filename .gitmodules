@@ -1,12 +1,12 @@
 [submodule "dm1-g9/src"]
-	path = dm1-g9/src
+	path = zynq/bitstream/dm1-g9/src
 	url = git@gitlab.ii.zone:x/braiins.git
 [submodule "dm1-g19/src"]
-	path = dm1-g19/src
+	path = zynq/bitstream/dm1-g19/src
 	url = git@gitlab.ii.zone:x/braiins.git
 [submodule "dm1-g29/src"]
-	path = dm1-g29/src
+	path = zynq/bitstream/dm1-g29/src
 	url = git@gitlab.ii.zone:x/braiins.git
 [submodule "am1-s9/src"]
-	path = am1-s9/src
+	path = zynq/bitstream/am1-s9/src
 	url = git@gitlab.ii.zone:x/braiins.git
