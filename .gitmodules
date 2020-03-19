@@ -10,3 +10,6 @@
 [submodule "am1-s9/src"]
 	path = zynq/bitstream/am1-s9/src
 	url = git@gitlab.ii.zone:x/braiins.git
+[submodule "zynq/bootloaders/am1-s9/src"]
+	path = zynq/bootloaders/am1-s9/src
+	url = git@gitlab.ii.zone:x/u-boot-xlnx.git

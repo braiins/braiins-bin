@@ -1,0 +1,41 @@
+auto_recovery=if test x${upgrade_stage} = x0; then echo Trying to boot system after upgrade... && setenv upgrade_stage 1 && saveenv; elif test x${upgrade_stage} = x1; then echo Revert to previous firmware after unsuccessful upgrade... && if test x${firmware} = x1; then setenv firmware 2; else setenv firmware 1; fi; setenv upgrade_stage && setenv first_boot && saveenv && reset; else exit 0; fi
+baudrate=115200
+bitstream_addr=0x2100000
+bitstream_recovery_off=0x1C00000
+bitstream_size=0x100000
+boot_addr=0x2040000
+boot_recovery_off=0x1D00000
+boot_recovery_size=0x20000
+boot_size=0x40000
+bootcmd=run $modeboot
+bootdelay=1
+bootenv=uEnv.txt
+bootloaders_repair=do_reset=no && nand read ${load_addr} ${boot_recovery_off} ${boot_recovery_size} && mw.b ${boot_addr} 0xff ${boot_size} && unzip ${load_addr} ${boot_addr} && nand read ${load_addr} boot ${boot_size} && if cmp.b ${load_addr} ${boot_addr} ${boot_size}; then true; else echo Restoring factory SPL... && nand erase.part boot && nand write ${boot_addr} boot ${boot_size} && do_reset=yes; fi; nand read ${load_addr} ${uboot_recovery_off} ${uboot_recovery_size} && mw.b ${uboot_addr} 0xff ${uboot_size} && unzip ${load_addr} ${uboot_addr} && nand read ${load_addr} uboot ${uboot_size} && if cmp.b ${load_addr} ${uboot_addr} ${uboot_size}; then true; else echo Restoring factory U-Boot... && nand erase.part uboot && nand write ${uboot_addr} uboot ${uboot_size} && nand erase.part uboot_env; do_reset=yes; fi; test x${do_reset} = xyes && reset; exit 0
+button_ip=51
+factory_reset=yes
+factory_reset_delay=0xa
+fdt_high=0x7FFFFFF
+firmware=1
+firmware_select=if test x${firmware} = x1; then setenv bitstream fpga1 && setenv firmware_name firmware1 && setenv firmware_mtd 7; else setenv bitstream fpga2 && setenv firmware_name firmware2 && setenv firmware_mtd 8; fi
+first_boot=yes
+fit_image=fit.itb
+fpga_image=system.bit.gz
+initrd_high=0x7FFFFFF
+led_green=38
+led_red=37
+load_addr=0x2000000
+miner_cfg_size=0x20000
+mtdids=nand0=pl35x-nand
+mtdparts=mtdparts=pl35x-nand:512k(boot),2560k(uboot),2m(fpga1),2m(fpga2),512k(uboot_env),512k(miner_cfg),22m(recovery),95m(firmware1),95m(firmware2)
+nandboot=echo Copying FIT from NAND flash to RAM... && if test x${recovery} = xyes; then recovery=${recovery}; recovery_mtdparts=${recovery_mtdparts}; env set recovery; env set recovery_mtdparts; saveenv; fi; test x${first_boot} != xyes && run uenv_load; test x${factory_reset} = xyes && run uenv_reset; test x${sd_boot} = xyes && run sdboot; test x${recovery} = xyes && run nandboot_recovery; run firmware_select && run auto_recovery && setenv bootargs console=ttyPS0,115200 noinitrd ubi.mtd=${firmware_mtd} ubi.block=0,1 root=/dev/ubiblock0_1 r rootfstype=squashfs rootwait ${mtdparts} earlyprintk && nand read ${load_addr} ${bitstream} ${bitstream_size} && unzip ${load_addr} ${bitstream_addr} && fpga loadb 0 ${bitstream_addr} ${bitstream_size} && run nandboot_mode_select && ubi part ${firmware_name} && ubi read ${load_addr} kernel && gpio set ${led_green}; bootm ${load_addr}
+nandboot_mode_select=count=0; while gpio input ${button_ip}; do sleep 1; setexpr count ${count} + 1; itest ${count} >= ${recovery_delay} && gpio toggle ${led_green}; if itest ${count} >= ${factory_reset_delay}; then gpio set ${led_green}; gpio set ${led_red}; run uenv_reset; fi; done; gpio set ${led_green}; itest ${count} >= ${recovery_delay} && run nandboot_recovery; gpio clear ${led_green}; exit 0
+nandboot_recovery=echo Running recovery process... && test -n ${recovery_mtdparts} || setenv recovery_mtdparts ${mtdparts}; setenv bootargs console=ttyPS0,115200 root=/dev/ram0 r rootfstype=squashfs ${recovery_mtdparts} earlyprintk && nand read ${load_addr} ${bitstream_recovery_off} ${bitstream_size} && unzip ${load_addr} ${bitstream_addr} && fpga loadb 0 ${bitstream_addr} ${bitstream_size} && nand read ${load_addr} recovery ${recovery_size} && bootm ${load_addr}
+recovery_delay=0x3
+recovery_size=0x800000
+sdboot=echo Copying FIT from SD to RAM... && setenv recovery_mtdparts ${mtdparts}; run uenv_load; test -n ${bootargs} || setenv bootargs console=ttyPS0,115200 root=/dev/ram0 r rootfstype=squashfs ${recovery_mtdparts} earlyprintk; if test -n ${uenvcmd}; then echo Running uenvcmd... && run uenvcmd; fi; load mmc 0 ${load_addr} ${fpga_image} && unzip ${load_addr} ${bitstream_addr} && fpga loadb 0 ${bitstream_addr} ${bitstream_size} && load mmc 0 ${load_addr} ${fit_image} && gpio set ${led_green}; bootm ${load_addr}
+uboot_addr=0x2200000
+uboot_recovery_off=0x1D20000
+uboot_recovery_size=0xE0000
+uboot_size=0x200000
+uenv_load=load mmc 0 ${load_addr} ${bootenv} && echo Loaded environment from ${bootenv} && env import -t ${load_addr} ${filesize}
+uenv_reset=echo Resetting miner configuration... && nand erase.part uboot_env && reset
