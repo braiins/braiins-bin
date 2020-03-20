@@ -1,0 +1,122 @@
+FW_MINER_HWVER="S9"
+
+# Copyright (C) 2018  Braiins Systems s.r.o.
+#
+# This file is part of Braiins Build System (BB).
+#
+# BB is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <https://www.gnu.org/licenses/>.
+
+export PATH=/usr/local/bin:/usr/bin:/bin:/usr/local/sbin:/usr/sbin:/sbin
+
+flash_eraseall() {
+	flash_erase "$1" 0 0
+}
+
+file_size() {
+	printf "0x%x" $(stat -c "%s" "$1")
+}
+
+get_bm_config() {
+	tr -d '\n' < /config/bmminer.conf | \
+	sed -n 's/.*"'$1'":[ "]*\([^ ",}]*\).*/\1/p'
+}
+
+get_net_config() {
+	sed -n '/'$1'=/s/.*=["]*\([^"]*\)["]*/\1/p' /config/network.conf
+}
+
+check_mtd_hash() {
+	local hash_expected
+	local hash=$1
+	shift
+	while [ -n "$1" ]; do
+		hash_expected=$1
+		[ "$hash" == "$hash_expected" ] && return 0
+		shift
+	done
+	return 1
+}
+
+default_hostname="antMiner"
+
+mtd_hash_expected="\
+8bc020c6db888c7e8062fbbd4a6fb2a6 \
+dbed76afa7bff618ddea25b0c4ba69a7"
+mtd_hash=$(cat /proc/mtd | md5sum | awk '{print $1}')
+
+ETHADDR=$(cat /sys/class/net/eth0/address)
+ANTMINER_CB=$(cat /usr/bin/ctrl_bd)
+ANTMINER_VER=$(sed -n 2p /usr/bin/compile_time)
+
+case "$ANTMINER_VER" in
+	"Antminer S9"|\
+	"Antminer S9i"|\
+	"Antminer S9j"|\
+	"Antminer R4")
+		MINER_HWVER=S9
+		;;
+esac
+
+SPL_OFF=0x0
+UBOOT_OFF=0x80000
+UBOOT_ENV1_OFF=0x700000
+UBOOT_ENV2_OFF=0x720000
+BITSTREAM_OFF=0x300000
+
+UBOOT_MTD=0
+UBOOT_ENV_MTD=0
+
+if [ x"${ANTMINER_CB}" != x"XILINX" ]; then
+	echo "Unsupported control board: ${ANTMINER_CB}" >&2
+	exit 1
+fi
+
+if ! check_mtd_hash $mtd_hash $mtd_hash_expected; then
+	echo "Unsupported miner NAND partitioning" >&2
+	cat /proc/mtd >&2
+	exit 1
+fi
+
+if [ "x${MINER_HWVER}" != "x${FW_MINER_HWVER}" ]; then
+	echo "Unsupported miner version: ${ANTMINER_VER}" >&2
+	exit 1
+fi
+
+SRC_KERNEL_OFF=0x0000000
+DST_KERNEL_OFF=0xB000000
+SRC_STAGE2_OFF=0x0A00000
+DST_STAGE2_OFF=0x3D00000
+SRC_STAGE3_OFF=0x1E00000
+DST_STAGE3_OFF=0x5100000
+SRC_STAGE2_MTD=2
+DST_STAGE2_MTD=8
+SRC_STAGE3_MTD=2
+DST_STAGE3_MTD=8
+
+# save network settings
+NET_HOSTNAME=$(get_net_config "hostname")
+NET_IP=$(get_net_config "ipaddress")
+NET_MASK=$(get_net_config "netmask")
+NET_GATEWAY=$(get_net_config "gateway")
+NET_DNS_SERVERS=$(get_net_config "dnsservers" | tr " " ,)
+
+# save all local settings
+MINER_FREQ=$(get_bm_config "bitmain-freq")
+MINER_VOLTAGE=$(get_bm_config "bitmain-voltage")
+MINER_FIXED_FREQ=$(get_bm_config "fixed-freq")
+
+if [ x"$KEEP_HOSTNAME" == x"cond" ]; then
+	# keep hostname only if it has been changed by user
+	[ x"$NET_HOSTNAME" == x"$default_hostname" ] && KEEP_HOSTNAME="no" || KEEP_HOSTNAME="yes"
+fi
