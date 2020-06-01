@@ -29,11 +29,14 @@
 # Exit immediately if a command exits with a non-zero status.
 set -e
 
+# List of supported miners
+supported_miners=("S9" "S15" "S17")
+
 # --------------------------------------------------------------------------------------------------
 print_help() {
     echo ""
     echo "Usage: $0 MINER1 [MINER2 ...]"
-    echo "  MINER - name of the Antminer miner, available values: S9"
+    echo "  MINER - name of the Antminer miner, available values: ${supported_miners[@]}"
 }
 
 if [ "$1" == "--help" ]; then
@@ -42,10 +45,18 @@ if [ "$1" == "--help" ]; then
     exit 0
 fi
 
-if [ "$#" -ne 1 ]; then
+if [ "$#" -lt 1 ]; then
     echo "Wrong number of arguments!"
-    # echo "At least one miner must be defined"
+    echo "At least one miner must be defined"
     print_help
+    exit 1
+fi
+
+# --------------------------------------------------------------------------------------------------
+# Check input arguments
+if [[ ! " ${supported_miners[@]} " =~ " $@ " ]]; then
+    echo "Error: Input list contains unsupported miner!"
+    echo "Supported miners are following: ${supported_miners[@]}"
     exit 1
 fi
 
@@ -54,53 +65,73 @@ root=`pwd`
 
 # --------------------------------------------------------------------------------------------------
 # Check if submodule is initialized
-if [ ! -d "zynq/bitstream/am1-s9/src/open" ]; then
+if [ ! -d "zynq/bitstream/am2-s17/src/open" ]; then
     echo "Submodules are not initialized, trying download it ..."
     git submodule update --init --recursive
 fi
 
-# Pull repository and submodules
+# Pull repository
 git pull origin master --recurse-submodules
-cd zynq/bitstream/am1-s9/src/
-git pull origin master
 
-# Save last commit message
-git_msg=`git log --oneline | head -n 1 | cut -d " " -f 2-`
+# Create new branch
+git checkout -b bos/xxx/new-bitstream-`date +%s`
 
-# --------------------------------------------------------------------------------------------------
-# Miner name is the first argument
-miner=$1
-cd open/hw/zynq-io-am1-s9/design/
+# Iterate over all miners
+for miner in "$@"
+do
+    echo "================================================================================"
+    echo "Generating bitstream for miner $miner"
 
-# Run synthesis
-./run.sh $miner
+    # Prepare name of directory
+    if [ "$miner" == "S9" ]; then
+        dir=${root}/zynq/bitstream/am1-${miner,,}
+    else
+        dir=${root}/zynq/bitstream/am2-${miner,,}
+    fi
 
-# Check if bitstream exists
-echo "================================================================================"
-bitstream="build_$miner/results/system.bit"
-if [ ! -f $bitstream ]; then
-    echo "Bitstream $bitstream doesn't exist!"
-    exit 1
-fi
+    # ----------------------------------------------------------------------------------------------
+    # Pull submodule
+    cd $dir/src/
+    git pull origin master
 
-cp $bitstream $root/zynq/bitstream/am1-s9/
+    # Save last commit message
+    git_msg=`git log --oneline | head -n 1 | cut -d " " -f 2-`
 
-# Get Build ID number as hex
-build_id=`grep "Build ID:" build_$miner/vivado.log | head -n 1 | cut -d " " -f 3`
-build_id_hex=`printf '0x%X' $build_id`
+    # ----------------------------------------------------------------------------------------------
+    # Run synthesis
+    cd open/hw/zynq-io-am1-s9/design/
+    ./run.sh $miner
 
-# Copy and compress bitstream
-cd $root/zynq/bitstream/am1-s9/
-rm -f system.bit.gz
-gzip system.bit
+    # ----------------------------------------------------------------------------------------------
+    # Check if bitstream exists
+    echo "================================================================================"
+    bitstream="build_$miner/results/system.bit"
+    if [ ! -f $bitstream ]; then
+        echo "Bitstream $bitstream doesn't exist!"
+        exit 1
+    fi
 
-# --------------------------------------------------------------------------------------------------
-# Create git commit
-git add system.bit.gz
-git add src/
-git commit -m "bosminer: $miner: New bitstream" -m "- $git_msg" -m "BUILD_ID $build_id_hex"
+    cp $bitstream $dir
+
+    # Get Build ID number as hex
+    build_id=`grep "Build ID:" build_$miner/vivado.log | head -n 1 | cut -d " " -f 3`
+    build_id_hex=`printf '0x%X' $build_id`
+
+    # ----------------------------------------------------------------------------------------------
+    # Copy and compress bitstream
+    cd $dir
+    rm -f system.bit.gz
+    gzip system.bit
+
+    # ----------------------------------------------------------------------------------------------
+    # Create git commit
+    git add system.bit.gz
+    git add src/
+    git commit -m "bosminer: $miner: New bitstream" -m "- $git_msg" -m "BUILD_ID $build_id_hex"
+
+done
 
 echo "===================================== Done ====================================="
 echo "Check commit message and amend it if update is required"
-echo "If commit is ready then create branch, push commit and create merge request"
+echo "If commit is ready then rename branch, push commit and create merge request"
 echo "================================================================================"
