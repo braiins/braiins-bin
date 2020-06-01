@@ -16,3 +16,6 @@
 [submodule "zynq/bitstream/am2-s15/src"]
 	path = zynq/bitstream/am2-s15/src
 	url = git@gitlab.ii.zone:pool/main.git
+[submodule "zynq/bitstream/am2-s17/src"]
+	path = zynq/bitstream/am2-s17/src
+	url = git@gitlab.ii.zone:pool/main.git
