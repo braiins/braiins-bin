@@ -70,6 +70,9 @@ if [ ! -d "zynq/bitstream/am2-s17/src/open" ]; then
     git submodule update --init --recursive
 fi
 
+# Switch to master branch
+git checkout master
+
 # Pull repository
 git pull origin master --recurse-submodules
 
@@ -81,6 +84,7 @@ for miner in "$@"
 do
     echo "================================================================================"
     echo "Generating bitstream for miner $miner"
+    echo "================================================================================"
 
     # Prepare name of directory
     if [ "$miner" == "S9" ]; then
@@ -127,7 +131,7 @@ do
     # Create git commit
     git add system.bit.gz
     git add src/
-    git commit -m "bosminer: $miner: New bitstream" -m "- $git_msg" -m "BUILD_ID $build_id_hex"
+    git commit -m "bosminer: $miner: New bitstream" -m "- $git_msg" -m "$miner: BUILD_ID $build_id_hex"
 
 done
 
